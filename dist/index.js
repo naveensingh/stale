@@ -797,8 +797,30 @@ class IssuesProcessor {
             }
             const issueHasUpdateInCloseWindow = IssuesProcessor._updatedSince(issue.updated_at, daysBeforeClose);
             issueLogger.info(`$$type has been updated in the last ${daysBeforeClose} days: ${logger_service_1.LoggerService.cyan(issueHasUpdateInCloseWindow)}`);
-            if (!issueHasCommentsSinceStale && !issueHasUpdateInCloseWindow) {
-                issueLogger.info(`Closing $$type because it was last updated on: ${logger_service_1.LoggerService.cyan(issue.updated_at)}`);
+            // fossify-change-start by @naveensingh
+            const shouldIgnoreUpdates = new ignore_updates_1.IgnoreUpdates(this.options, issue).shouldIgnoreUpdates();
+            issueLogger.info(`The effective 'ignore-updates' setting for this $$type is: ${logger_service_1.LoggerService.cyan(shouldIgnoreUpdates)}`);
+            let shouldCloseIssue = false;
+            if (shouldIgnoreUpdates) {
+                const enoughTimePassedSinceStale = !IssuesProcessor._updatedSince(markedStaleOn, daysBeforeClose);
+                if (enoughTimePassedSinceStale) {
+                    issueLogger.info(`Closing $$type because ${daysBeforeClose} days have passed since marked stale on ${logger_service_1.LoggerService.cyan(markedStaleOn)} (ignore-updates: true)`);
+                    shouldCloseIssue = true;
+                }
+                else {
+                    issueLogger.info(`Stale $$type not old enough to close based *only* on stale date ${logger_service_1.LoggerService.cyan(markedStaleOn)} (ignore-updates: true)`);
+                }
+            }
+            else {
+                if (!issueHasCommentsSinceStale && !issueHasUpdateInCloseWindow) {
+                    issueLogger.info(`Closing $$type because it was last updated on: ${logger_service_1.LoggerService.cyan(issue.updated_at)}`);
+                    shouldCloseIssue = true;
+                }
+                else {
+                    issueLogger.info(`Stale $$type is not old enough to close yet (hasComments? ${issueHasCommentsSinceStale}, hasUpdate? ${issueHasUpdateInCloseWindow})`);
+                }
+            }
+            if (shouldCloseIssue) {
                 yield this._closeIssue(issue, closeMessage, closeLabel);
                 if (this.options.deleteBranch && issue.pull_request) {
                     issueLogger.info(`Deleting the branch since the option ${issueLogger.createOptionLink(option_1.Option.DeleteBranch)} is enabled`);
@@ -806,9 +828,7 @@ class IssuesProcessor {
                     this.deletedBranchIssues.push(issue);
                 }
             }
-            else {
-                issueLogger.info(`Stale $$type is not old enough to close yet (hasComments? ${issueHasCommentsSinceStale}, hasUpdate? ${issueHasUpdateInCloseWindow})`);
-            }
+            // fossify-change-end by @naveensingh
         });
     }
     // checks to see if a given issue is still stale (has had activity on it)

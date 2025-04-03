@@ -1,5 +1,10 @@
 # Changelog
 
+# [9.1.1]
+
+## What's Changed
+* Fix issue with stale detection logic for issues and PRs with ignore-updates setting by @naveensingh
+
 # [9.1.0]
 
 ## What's Changed
