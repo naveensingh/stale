@@ -765,12 +765,56 @@ export class IssuesProcessor {
       )}`
     );
 
-    if (!issueHasCommentsSinceStale && !issueHasUpdateInCloseWindow) {
-      issueLogger.info(
-        `Closing $$type because it was last updated on: ${LoggerService.cyan(
-          issue.updated_at
-        )}`
+    // fossify-change-start by @naveensingh
+    const shouldIgnoreUpdates: boolean = new IgnoreUpdates(
+      this.options,
+      issue
+    ).shouldIgnoreUpdates();
+
+    issueLogger.info(
+      `The effective 'ignore-updates' setting for this $$type is: ${LoggerService.cyan(
+        shouldIgnoreUpdates
+      )}`
+    );
+
+    let shouldCloseIssue = false;
+    if (shouldIgnoreUpdates) {
+      const enoughTimePassedSinceStale = !IssuesProcessor._updatedSince(
+        markedStaleOn,
+        daysBeforeClose
       );
+
+      if (enoughTimePassedSinceStale) {
+        issueLogger.info(
+          `Closing $$type because ${daysBeforeClose} days have passed since marked stale on ${LoggerService.cyan(
+            markedStaleOn
+          )} (ignore-updates: true)`
+        );
+        shouldCloseIssue = true;
+      } else {
+        issueLogger.info(
+          `Stale $$type not old enough to close based *only* on stale date ${LoggerService.cyan(
+            markedStaleOn
+          )} (ignore-updates: true)`
+        );
+      }
+    } else {
+      if (!issueHasCommentsSinceStale && !issueHasUpdateInCloseWindow) {
+        issueLogger.info(
+          `Closing $$type because it was last updated on: ${LoggerService.cyan(
+            issue.updated_at
+          )}`
+        );
+
+        shouldCloseIssue = true;
+      } else {
+        issueLogger.info(
+          `Stale $$type is not old enough to close yet (hasComments? ${issueHasCommentsSinceStale}, hasUpdate? ${issueHasUpdateInCloseWindow})`
+        );
+      }
+    }
+
+    if (shouldCloseIssue) {
       await this._closeIssue(issue, closeMessage, closeLabel);
 
       if (this.options.deleteBranch && issue.pull_request) {
@@ -782,11 +826,8 @@ export class IssuesProcessor {
         await this._deleteBranch(issue);
         this.deletedBranchIssues.push(issue);
       }
-    } else {
-      issueLogger.info(
-        `Stale $$type is not old enough to close yet (hasComments? ${issueHasCommentsSinceStale}, hasUpdate? ${issueHasUpdateInCloseWindow})`
-      );
     }
+    // fossify-change-end by @naveensingh
   }
 
   // checks to see if a given issue is still stale (has had activity on it)
