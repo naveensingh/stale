@@ -922,22 +922,22 @@ class IssuesProcessor {
                     issueLogger.error(`Error when creating a comment: ${error.message}`);
                 }
             }
-            if (closeLabel) {
-                try {
-                    this._consumeIssueOperation(issue);
+            try {
+                this._consumeIssueOperation(issue);
+                if (closeLabel) {
                     (_b = this.statistics) === null || _b === void 0 ? void 0 : _b.incrementAddedItemsLabel(issue);
-                    if (!this.options.debugOnly) {
-                        yield this.client.rest.issues.addLabels({
-                            owner: github_1.context.repo.owner,
-                            repo: github_1.context.repo.repo,
-                            issue_number: issue.number,
-                            labels: [closeLabel]
-                        });
-                    }
                 }
-                catch (error) {
-                    issueLogger.error(`Error when adding a label: ${error.message}`);
+                if (!this.options.debugOnly) {
+                    yield this.client.rest.issues.setLabels({
+                        owner: github_1.context.repo.owner,
+                        repo: github_1.context.repo.repo,
+                        issue_number: issue.number,
+                        labels: closeLabel ? [closeLabel] : []
+                    });
                 }
+            }
+            catch (error) {
+                issueLogger.error(`Error when setting labels: ${error.message}`);
             }
             try {
                 this._consumeIssueOperation(issue);

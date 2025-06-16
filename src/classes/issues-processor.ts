@@ -948,22 +948,22 @@ export class IssuesProcessor {
       }
     }
 
-    if (closeLabel) {
-      try {
-        this._consumeIssueOperation(issue);
+    try {
+      this._consumeIssueOperation(issue);
+      if (closeLabel) {
         this.statistics?.incrementAddedItemsLabel(issue);
-
-        if (!this.options.debugOnly) {
-          await this.client.rest.issues.addLabels({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: issue.number,
-            labels: [closeLabel]
-          });
-        }
-      } catch (error) {
-        issueLogger.error(`Error when adding a label: ${error.message}`);
       }
+
+      if (!this.options.debugOnly) {
+        await this.client.rest.issues.setLabels({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          issue_number: issue.number,
+          labels: closeLabel ? [closeLabel] : []
+        });
+      }
+    } catch (error) {
+      issueLogger.error(`Error when setting labels: ${error.message}`);
     }
 
     try {
