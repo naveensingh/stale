@@ -954,7 +954,7 @@ export class IssuesProcessor {
         this.statistics?.incrementAddedItemsLabel(issue);
 
         if (!this.options.debugOnly) {
-          await this.client.rest.issues.addLabels({
+          await this.client.rest.issues.setLabels({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: issue.number,
@@ -962,7 +962,7 @@ export class IssuesProcessor {
           });
         }
       } catch (error) {
-        issueLogger.error(`Error when adding a label: ${error.message}`);
+        issueLogger.error(`Error when setting labels: ${error.message}`);
       }
     }
 
